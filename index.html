@@ -1,3 +1,4 @@
+```html
 <!doctype html>
 <html lang="en">
 <head>
@@ -11,8 +12,6 @@
       --text: rgba(255,255,255,0.92);
       --muted: rgba(255,255,255,0.72);
       --shadow: 0 18px 70px rgba(0,0,0,0.45);
-      --yes: #29d18b;
-      --no: #ff5a7a;
     }
     *{ box-sizing:border-box; }
     body{
@@ -27,11 +26,11 @@
       background: #0f1020;
     }
 
-    /* Background photo layer */
-    .bg {
+    /* Background photo layer (put alisha.jpg next to index.html) */
+    .bg{
       position: fixed;
       inset: 0;
-      background-image: url("alisha.jpg"); /* <-- put her photo here (same folder) */
+      background-image: url("alisha.jpg");
       background-size: cover;
       background-position: center;
       filter: blur(14px) brightness(0.75) saturate(1.1);
@@ -51,8 +50,8 @@
 
     .card{
       width:min(720px, 92vw);
-      background: var(--card);
-      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
       border-radius: 22px;
       box-shadow: var(--shadow);
       padding: 28px 22px 18px;
@@ -71,6 +70,7 @@
       color: var(--muted);
       font-size: 15px;
     }
+
     .play-area{
       position: relative;
       height: 240px;
@@ -110,10 +110,11 @@
     }
     #yesBtn:hover{ filter: brightness(1.06); transform: translateY(-1px); }
 
+    /* No button is absolute so it can run away */
     #noBtn{
       position:absolute;
-      left:50%;
-      top:55%;
+      left: calc(50% + 160px); /* initial fallback (JS will place precisely) */
+      top: 50%;
       transform: translate(-50%, -50%);
       background: linear-gradient(180deg, rgba(255,90,122,1), rgba(215,40,78,1));
       color:#17030a;
@@ -272,7 +273,7 @@
   <div class="bgTint" aria-hidden="true"></div>
 
   <div class="card">
-    <h1 class="title">Hi, Manager, will you be my Valentine? 💘</h1>
+    <h1 class="title">Hi Manager, will you be my Valentine? 💘</h1>
     <p class="subtitle">This request has been escalated for approval. Please review carefully.</p>
 
     <div class="play-area" id="playArea">
@@ -290,7 +291,7 @@
   </div>
 
   <div class="overlay" id="overlay" role="dialog" aria-modal="true">
-    <div class="modal" id="modal">
+    <div class="modal">
       <button class="close" id="closeBtn" type="button">Close ✨</button>
 
       <h2>APPROVED ✅💖</h2>
@@ -308,7 +309,7 @@
           <div class="yt-head">
             <div>Manager’s favourite bit: 0:38 → 0:45 (loop)</div>
             <div class="yt-actions">
-              <button class="miniBtn" id="muteBtn" type="button">Unmute 🔊</button>
+              <button class="miniBtn" id="muteBtn" type="button">Mute 🔇</button>
               <button class="miniBtn" id="replayBtn" type="button">Replay ▶️</button>
             </div>
           </div>
@@ -319,11 +320,13 @@
   </div>
 
   <script>
-    // --- Runaway "No" button ---
     const playArea = document.getElementById("playArea");
     const noBtn = document.getElementById("noBtn");
     const yesBtn = document.getElementById("yesBtn");
     const funnyLine = document.getElementById("funnyLine");
+
+    const overlay = document.getElementById("overlay");
+    const closeBtn = document.getElementById("closeBtn");
 
     const lines = [
       "Manager, the “No” button is not authorised to make decisions today 🫣",
@@ -333,6 +336,7 @@
       "Careful, Manager… the “No” button fears performance reviews 😅"
     ];
     let lastLine = -1;
+
     function setRandomLine(){
       let idx = Math.floor(Math.random() * lines.length);
       if (idx === lastLine) idx = (idx + 1) % lines.length;
@@ -341,6 +345,62 @@
     }
 
     function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+    // Prevent "No" from overlapping or coming close to "Yes"
+    function tooCloseToYes(candidateLeft, candidateTop) {
+      const areaRect = playArea.getBoundingClientRect();
+
+      const noW = noBtn.offsetWidth;
+      const noH = noBtn.offsetHeight;
+      const noRect = {
+        left: candidateLeft,
+        top: candidateTop,
+        right: candidateLeft + noW,
+        bottom: candidateTop + noH,
+        cx: candidateLeft + noW / 2,
+        cy: candidateTop + noH / 2
+      };
+
+      const yesAbs = yesBtn.getBoundingClientRect();
+      const yesRect = {
+        left: yesAbs.left - areaRect.left,
+        top: yesAbs.top - areaRect.top,
+        right: yesAbs.right - areaRect.left,
+        bottom: yesAbs.bottom - areaRect.top
+      };
+      const yesCx = (yesRect.left + yesRect.right) / 2;
+      const yesCy = (yesRect.top + yesRect.bottom) / 2;
+
+      const overlaps =
+        !(noRect.right < yesRect.left ||
+          noRect.left > yesRect.right ||
+          noRect.bottom < yesRect.top ||
+          noRect.top > yesRect.bottom);
+
+      if (overlaps) return true;
+
+      const minDistance = 140;
+      const dist = Math.hypot(noRect.cx - yesCx, noRect.cy - yesCy);
+      return dist < minDistance;
+    }
+
+    function placeNoToRightOfYes() {
+      const areaRect = playArea.getBoundingClientRect();
+      const yesRect = yesBtn.getBoundingClientRect();
+
+      const padding = 14;
+      const gap = 18;
+
+      const left = (yesRect.right - areaRect.left) + gap;
+      const top  = (yesRect.top - areaRect.top);
+
+      const maxX = areaRect.width - noBtn.offsetWidth - padding;
+      const maxY = areaRect.height - noBtn.offsetHeight - padding;
+
+      noBtn.style.left = clamp(left, padding, maxX) + "px";
+      noBtn.style.top  = clamp(top, padding, maxY) + "px";
+      noBtn.style.transform = "translate(0, 0)";
+    }
 
     function moveNoButtonAwayFrom(x, y){
       const areaRect = playArea.getBoundingClientRect();
@@ -369,8 +429,17 @@
       const randX = awayX + (Math.random() * 140 - 70);
       const randY = awayY + (Math.random() * 120 - 60);
 
-      const newLeft = clamp(randX - btnRect.width / 2, padding, maxX);
-      const newTop  = clamp(randY - btnRect.height / 2, padding, maxY);
+      let newLeft = clamp(randX - btnRect.width / 2, padding, maxX);
+      let newTop  = clamp(randY - btnRect.height / 2, padding, maxY);
+
+      let tries = 0;
+      while (tooCloseToYes(newLeft, newTop) && tries < 18) {
+        const rX = padding + Math.random() * (maxX - padding);
+        const rY = padding + Math.random() * (maxY - padding);
+        newLeft = clamp(rX, padding, maxX);
+        newTop  = clamp(rY, padding, maxY);
+        tries++;
+      }
 
       noBtn.style.left = newLeft + "px";
       noBtn.style.top  = newTop + "px";
@@ -391,10 +460,10 @@
       alert("Nice try 😌 The 'No' button is currently unavailable due to shyness.");
     });
 
-    // --- Celebration overlay + balloons ---
-    const overlay = document.getElementById("overlay");
-    const closeBtn = document.getElementById("closeBtn");
+    window.addEventListener("load", placeNoToRightOfYes);
+    window.addEventListener("resize", placeNoToRightOfYes);
 
+    // Balloons
     function launchBalloons(){
       document.querySelectorAll(".balloon").forEach(b => b.remove());
       const count = 16;
@@ -414,27 +483,14 @@
       }
     }
 
-    closeBtn.addEventListener("click", () => {
-      overlay.classList.remove("show");
-      stopSegmentLoop();
-    });
-    overlay.addEventListener("click", (e) => {
-      if (e.target === overlay){
-        overlay.classList.remove("show");
-        stopSegmentLoop();
-      }
-    });
-
     // --- YouTube segment loop (0:38 to 0:45) ---
-    // We embed and use the IFrame API to loop a specific range.
-    // This avoids needing to download/clip the audio (copyright).
     const VIDEO_ID = "GhcMmaUPtrk";
     const SEG_START = 38;
     const SEG_END   = 45;
 
     let player = null;
     let loopTimer = null;
-    let isMuted = true;
+    let isMuted = false; // play sound by default
 
     function loadYouTubeAPI(){
       return new Promise((resolve) => {
@@ -453,7 +509,6 @@
       player = new YT.Player("ytPlayer", {
         videoId: VIDEO_ID,
         playerVars: {
-          // We still set start/end for initial load; we enforce looping via JS.
           start: SEG_START,
           end: SEG_END,
           autoplay: 0,
@@ -463,8 +518,9 @@
         },
         events: {
           onReady: () => {
-            player.mute();
-            isMuted = true;
+            // Do NOT mute by default
+            try { player.unMute(); } catch {}
+            isMuted = false;
             updateMuteBtn();
           }
         }
@@ -478,11 +534,9 @@
     function startSegmentLoop(){
       if (!player) return;
       try{
-        // Jump to favourite segment and play.
         player.seekTo(SEG_START, true);
         player.playVideo();
 
-        // Poll time and rewind when it hits end.
         loopTimer && clearInterval(loopTimer);
         loopTimer = setInterval(() => {
           const t = player.getCurrentTime ? player.getCurrentTime() : 0;
@@ -505,10 +559,10 @@
       await ensurePlayer();
       if (!player) return;
       if (isMuted){
-        player.unMute();
+        try { player.unMute(); } catch {}
         isMuted = false;
       } else {
-        player.mute();
+        try { player.mute(); } catch {}
         isMuted = true;
       }
       updateMuteBtn();
@@ -519,15 +573,27 @@
       startSegmentLoop();
     });
 
-    // YES: show overlay, balloons, and start music segment (muted by default)
+    // YES: show overlay, balloons, and start music segment on loop (with sound)
     yesBtn.addEventListener("click", async () => {
       overlay.classList.add("show");
       launchBalloons();
       await ensurePlayer();
-      // keep muted by default; user can unmute
+      // iOS may still require user interaction (this click counts) but sometimes needs an extra tap.
       startSegmentLoop();
+    });
+
+    document.getElementById("closeBtn").addEventListener("click", () => {
+      overlay.classList.remove("show");
+      stopSegmentLoop();
+    });
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay){
+        overlay.classList.remove("show");
+        stopSegmentLoop();
+      }
     });
   </script>
 </body>
 </html>
-
+```
