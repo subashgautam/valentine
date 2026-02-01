@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Manager Approval Required</title>
+  <style>
+    :root{
+      --card: rgba(255,255,255,0.08);
+      --stroke: rgba(255,255,255,0.14);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.72);
+      --shadow: 0 18px 70px rgba(0,0,0,0.45);
+      --yes: #29d18b;
+      --no: #ff5a7a;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      overflow:hidden;
+      padding:24px;
+      background: #0f1020;
+    }
+
+    /* Background photo layer */
+    .bg {
+      position: fixed;
+      inset: 0;
+      background-image: url("alisha.jpg"); /* <-- put her photo here (same folder) */
+      background-size: cover;
+      background-position: center;
+      filter: blur(14px) brightness(0.75) saturate(1.1);
+      transform: scale(1.06);
+      z-index: -3;
+    }
+    .bgTint{
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(1200px 700px at 15% 10%, rgba(255,90,122,0.22), transparent 60%),
+        radial-gradient(900px 650px at 85% 20%, rgba(41,209,139,0.18), transparent 55%),
+        radial-gradient(800px 800px at 50% 90%, rgba(124,77,255,0.22), transparent 60%),
+        linear-gradient(160deg, rgba(15,16,32,0.88), rgba(27,15,46,0.88));
+      z-index: -2;
+    }
+
+    .card{
+      width:min(720px, 92vw);
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 28px 22px 18px;
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+    .title{
+      margin:0 0 10px;
+      text-align:center;
+      font-size: clamp(26px, 3.7vw, 40px);
+      line-height:1.1;
+    }
+    .subtitle{
+      margin:0 0 18px;
+      text-align:center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .play-area{
+      position: relative;
+      height: 240px;
+      border-radius: 18px;
+      border: 1px dashed rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.12);
+      overflow:hidden;
+      display:grid;
+      place-items:center;
+      padding:16px;
+    }
+    .buttons{
+      display:flex;
+      gap:14px;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+      z-index:2;
+    }
+    button{
+      appearance:none;
+      border:0;
+      border-radius:14px;
+      padding:14px 22px;
+      font-size:18px;
+      font-weight:800;
+      cursor:pointer;
+      user-select:none;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      transition: transform 0.08s ease, filter 0.18s ease;
+    }
+    button:active{ transform: translateY(1px) scale(0.99); }
+
+    #yesBtn{
+      background: linear-gradient(180deg, rgba(41,209,139,1), rgba(24,170,110,1));
+      color:#07140f;
+    }
+    #yesBtn:hover{ filter: brightness(1.06); transform: translateY(-1px); }
+
+    #noBtn{
+      position:absolute;
+      left:50%;
+      top:55%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(180deg, rgba(255,90,122,1), rgba(215,40,78,1));
+      color:#17030a;
+    }
+
+    .footer-funny{
+      margin-top:14px;
+      text-align:center;
+      color: rgba(255,255,255,0.78);
+      font-size:14px;
+      min-height:22px;
+    }
+    .tiny{
+      display:block;
+      margin-top:6px;
+      font-size:12px;
+      color: rgba(255,255,255,0.55);
+    }
+
+    /* Overlay celebration */
+    .overlay{
+      position:fixed;
+      inset:0;
+      background: rgba(8, 6, 18, 0.72);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:22px;
+      z-index:50;
+    }
+    .overlay.show{ display:flex; }
+
+    .modal{
+      width:min(820px, 94vw);
+      border-radius:22px;
+      background: rgba(255,255,255,0.10);
+      border:1px solid rgba(255,255,255,0.18);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      padding:18px;
+      position:relative;
+      overflow:hidden;
+    }
+    .modal h2{
+      margin: 8px 10px 8px;
+      text-align:center;
+      font-size: clamp(22px, 3vw, 34px);
+    }
+    .modal p{
+      margin: 0 10px 12px;
+      text-align:center;
+      color: rgba(255,255,255,0.82);
+    }
+    .row{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+      padding: 8px 10px 2px;
+    }
+    @media (min-width: 760px){
+      .row{ grid-template-columns: 1fr 1fr; align-items:start; }
+    }
+
+    .gif-wrap{
+      display:grid;
+      place-items:center;
+      padding: 6px;
+    }
+    .gif-wrap img{
+      width: min(420px, 90%);
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.2);
+    }
+
+    .yt-wrap{
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.25);
+      overflow:hidden;
+      min-height: 240px;
+      position: relative;
+    }
+    .yt-head{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+    }
+    .yt-actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .miniBtn{
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      background: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.92);
+      border:1px solid rgba(255,255,255,0.14);
+      box-shadow:none;
+    }
+    .miniBtn:hover{ filter: brightness(1.1); }
+
+    .close{
+      position:absolute;
+      top:10px;
+      right:10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.92);
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow:none;
+    }
+
+    /* Floating balloons */
+    .balloon{
+      position:absolute;
+      bottom:-120px;
+      width:48px;
+      height:62px;
+      border-radius: 50% 50% 45% 45%;
+      opacity:0.92;
+      animation: floatUp linear forwards;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+    }
+    .balloon::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:58px;
+      width:2px;
+      height:52px;
+      background: rgba(255,255,255,0.55);
+      transform: translateX(-50%);
+      opacity:0.5;
+    }
+    @keyframes floatUp{
+      to{
+        transform: translateY(-120vh) translateX(var(--drift,0px)) rotate(var(--rot,0deg));
+        opacity:0.02;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="bgTint" aria-hidden="true"></div>
+
+  <div class="card">
+    <h1 class="title">Manager, will you be my Valentine? 💘</h1>
+    <p class="subtitle">This request has been escalated for approval. Please review carefully.</p>
+
+    <div class="play-area" id="playArea">
+      <div class="buttons" aria-hidden="true">
+        <button id="yesBtn" type="button">Yes 💚</button>
+      </div>
+
+      <button id="noBtn" type="button">No 💔</button>
+    </div>
+
+    <div class="footer-funny" id="funnyLine">
+      Manager, the “No” button is not authorised to make decisions today 🫣
+      <span class="tiny">PS: If it starts sprinting, that’s not a bug. That’s self-preservation.</span>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true">
+    <div class="modal" id="modal">
+      <button class="close" id="closeBtn" type="button">Close ✨</button>
+
+      <h2>APPROVED ✅💖</h2>
+      <p>Thank you, Manager. Your approval has been received and recorded.</p>
+
+      <div class="row">
+        <div class="gif-wrap">
+          <img
+            alt="Balloon pop celebration"
+            src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExN2JzdmRmeG5zaGFidzJ4Y3FnaXF5bjluZWlxdXBnanI2b3E5MDJnaiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/26uf0SPIQKjugbzby/200w.gif"
+          />
+        </div>
+
+        <div class="yt-wrap">
+          <div class="yt-head">
+            <div>Manager’s favourite bit: 0:38 → 0:45 (loop)</div>
+            <div class="yt-actions">
+              <button class="miniBtn" id="muteBtn" type="button">Unmute 🔊</button>
+              <button class="miniBtn" id="replayBtn" type="button">Replay ▶️</button>
+            </div>
+          </div>
+          <div id="ytPlayer" style="width:100%; aspect-ratio:16/9;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Runaway "No" button ---
+    const playArea = document.getElementById("playArea");
+    const noBtn = document.getElementById("noBtn");
+    const yesBtn = document.getElementById("yesBtn");
+    const funnyLine = document.getElementById("funnyLine");
+
+    const lines = [
+      "Manager, the “No” button is not authorised to make decisions today 🫣",
+      "This action requires managerial approval… oh wait 😌",
+      "The “No” button is running from accountability 🏃‍♂️💨",
+      "HR note: Clicking “No” violates company happiness policy 🤧📋",
+      "Careful, Manager… the “No” button fears performance reviews 😅"
+    ];
+    let lastLine = -1;
+    function setRandomLine(){
+      let idx = Math.floor(Math.random() * lines.length);
+      if (idx === lastLine) idx = (idx + 1) % lines.length;
+      lastLine = idx;
+      funnyLine.firstChild.nodeValue = lines[idx] + " ";
+    }
+
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+    function moveNoButtonAwayFrom(x, y){
+      const areaRect = playArea.getBoundingClientRect();
+      const btnRect = noBtn.getBoundingClientRect();
+
+      const cx = x - areaRect.left;
+      const cy = y - areaRect.top;
+
+      const bx = (btnRect.left - areaRect.left) + btnRect.width / 2;
+      const by = (btnRect.top - areaRect.top) + btnRect.height / 2;
+
+      const dx = bx - cx;
+      const dy = by - cy;
+      const dist = Math.hypot(dx, dy);
+
+      const dangerRadius = 110;
+      if (dist > dangerRadius) return;
+
+      const padding = 14;
+      const maxX = areaRect.width - btnRect.width - padding;
+      const maxY = areaRect.height - btnRect.height - padding;
+
+      const awayX = bx + (dx / (dist || 1)) * 140;
+      const awayY = by + (dy / (dist || 1)) * 140;
+
+      const randX = awayX + (Math.random() * 140 - 70);
+      const randY = awayY + (Math.random() * 120 - 60);
+
+      const newLeft = clamp(randX - btnRect.width / 2, padding, maxX);
+      const newTop  = clamp(randY - btnRect.height / 2, padding, maxY);
+
+      noBtn.style.left = newLeft + "px";
+      noBtn.style.top  = newTop + "px";
+      noBtn.style.transform = "translate(0, 0)";
+
+      setRandomLine();
+    }
+
+    playArea.addEventListener("mousemove", (e) => moveNoButtonAwayFrom(e.clientX, e.clientY));
+    noBtn.addEventListener("mouseenter", (e) => moveNoButtonAwayFrom(e.clientX, e.clientY));
+    noBtn.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      if (t) moveNoButtonAwayFrom(t.clientX, t.clientY);
+    }, { passive:true });
+
+    noBtn.addEventListener("click", () => {
+      setRandomLine();
+      alert("Nice try 😌 The 'No' button is currently unavailable due to shyness.");
+    });
+
+    // --- Celebration overlay + balloons ---
+    const overlay = document.getElementById("overlay");
+    const closeBtn = document.getElementById("closeBtn");
+
+    function launchBalloons(){
+      document.querySelectorAll(".balloon").forEach(b => b.remove());
+      const count = 16;
+      for (let i = 0; i < count; i++){
+        const b = document.createElement("div");
+        b.className = "balloon";
+        const hue = Math.floor(Math.random() * 360);
+        b.style.background = `linear-gradient(180deg, hsla(${hue}, 90%, 70%, 1), hsla(${hue}, 90%, 55%, 1))`;
+        b.style.left = (Math.random() * 100) + "vw";
+        const dur = 4 + Math.random() * 3.5;
+        b.style.animationDuration = dur + "s";
+        b.style.setProperty("--drift", (Math.random()*180 - 90).toFixed(0) + "px");
+        b.style.setProperty("--rot", (Math.random()*60 - 30).toFixed(0) + "deg");
+        b.style.animationDelay = (Math.random() * 0.9).toFixed(2) + "s";
+        document.body.appendChild(b);
+        setTimeout(() => b.remove(), (dur + 2) * 1000);
+      }
+    }
+
+    closeBtn.addEventListener("click", () => {
+      overlay.classList.remove("show");
+      stopSegmentLoop();
+    });
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay){
+        overlay.classList.remove("show");
+        stopSegmentLoop();
+      }
+    });
+
+    // --- YouTube segment loop (0:38 to 0:45) ---
+    // We embed and use the IFrame API to loop a specific range.
+    // This avoids needing to download/clip the audio (copyright).
+    const VIDEO_ID = "GhcMmaUPtrk";
+    const SEG_START = 38;
+    const SEG_END   = 45;
+
+    let player = null;
+    let loopTimer = null;
+    let isMuted = true;
+
+    function loadYouTubeAPI(){
+      return new Promise((resolve) => {
+        if (window.YT && window.YT.Player) return resolve();
+        const tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+        window.onYouTubeIframeAPIReady = () => resolve();
+        document.head.appendChild(tag);
+      });
+    }
+
+    async function ensurePlayer(){
+      await loadYouTubeAPI();
+      if (player) return;
+
+      player = new YT.Player("ytPlayer", {
+        videoId: VIDEO_ID,
+        playerVars: {
+          // We still set start/end for initial load; we enforce looping via JS.
+          start: SEG_START,
+          end: SEG_END,
+          autoplay: 0,
+          controls: 1,
+          rel: 0,
+          playsinline: 1
+        },
+        events: {
+          onReady: () => {
+            player.mute();
+            isMuted = true;
+            updateMuteBtn();
+          }
+        }
+      });
+    }
+
+    function updateMuteBtn(){
+      document.getElementById("muteBtn").textContent = isMuted ? "Unmute 🔊" : "Mute 🔇";
+    }
+
+    function startSegmentLoop(){
+      if (!player) return;
+      try{
+        // Jump to favourite segment and play.
+        player.seekTo(SEG_START, true);
+        player.playVideo();
+
+        // Poll time and rewind when it hits end.
+        loopTimer && clearInterval(loopTimer);
+        loopTimer = setInterval(() => {
+          const t = player.getCurrentTime ? player.getCurrentTime() : 0;
+          if (t >= SEG_END - 0.15){
+            player.seekTo(SEG_START, true);
+          }
+        }, 120);
+      } catch {}
+    }
+
+    function stopSegmentLoop(){
+      if (loopTimer) clearInterval(loopTimer);
+      loopTimer = null;
+      if (player && player.pauseVideo) {
+        try { player.pauseVideo(); } catch {}
+      }
+    }
+
+    document.getElementById("muteBtn").addEventListener("click", async () => {
+      await ensurePlayer();
+      if (!player) return;
+      if (isMuted){
+        player.unMute();
+        isMuted = false;
+      } else {
+        player.mute();
+        isMuted = true;
+      }
+      updateMuteBtn();
+    });
+
+    document.getElementById("replayBtn").addEventListener("click", async () => {
+      await ensurePlayer();
+      startSegmentLoop();
+    });
+
+    // YES: show overlay, balloons, and start music segment (muted by default)
+    yesBtn.addEventListener("click", async () => {
+      overlay.classList.add("show");
+      launchBalloons();
+      await ensurePlayer();
+      // keep muted by default; user can unmute
+      startSegmentLoop();
+    });
+  </script>
+</body>
+</html>
